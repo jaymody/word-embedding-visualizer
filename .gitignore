@@ -1,0 +1,16 @@
+__pycache__/
+.ipynb_checkpoints/
+build/
+dist/
+*.egg-info
+*.egg-info/
+.DS_Store
+.vscode
+.swp
+
+TODO.txt
+tests/
+model/
+data/
+demo_embeddings/
+temp_data/
