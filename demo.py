@@ -19,6 +19,8 @@ import scipy.spatial.distance as spatial_distance
 
 from graph import Scatter2d, Scatter3d
 
+from jutils.dimred import tsne_kwargs, umap_kwargs, pca_kwargs, reduce_dims
+
 # get relative data folder
 PATH = pathlib.Path(__file__).parent
 DATA_PATH = PATH.joinpath("data").resolve()
@@ -230,7 +232,7 @@ def create_layout(app):
                                 val="3",
                             ),
                             NamedInlineRadioItems(
-                                name="Number of Dimensions",
+                                name="Show Grid",
                                 short="show-grid",
                                 options=[
                                     {
@@ -247,7 +249,50 @@ def create_layout(app):
                         ],
                         id = "options-card",
                     ),
-                    Card([], id='reduction-parameters'),
+                    html.Section([
+                        NamedSlider(
+                            name="Number of Iterations",
+                            short="n_epochs",
+                            min=100,
+                            max=1000,
+                            step=10,
+                            val=500,
+                            marks={i: str(i) for i in [100, 250, 500, 750, 1000]},
+                        )], id="n_epochs_card"
+                    ),
+                    html.Section([
+                        NamedSlider(
+                            name="Number of NN",
+                            short="n_neighbors",
+                            min=4,
+                            max=100,
+                            step=None,
+                            val=10,
+                            marks={i: str(i) for i in [4, 10, 20, 50, 100]},
+                        )], id="n_neighbors_card"
+                    ),
+                    html.Section([
+                        NamedSlider(
+                            name="Learning Rate",
+                            short="learning_rate",
+                            min=10,
+                            max=200,
+                            step=1,
+                            val=100,
+                            marks={i: str(i) for i in [10, 50, 100, 200]},
+                        )], id = "learning_rate_card"
+                    ),
+                    html.Section([
+                        NamedSlider(
+                            name="Perplexity",
+                            short="perplexity",
+                            min=3,
+                            max=100,
+                            step=None,
+                            val=30,
+                            marks={i: str(i) for i in [3, 10, 20, 50, 100]},
+                        )], id = "perplexity_card"
+                    ),
                     Card(
                         [
                             html.Button(id="reduction-run-button", children=["Reduce"])
@@ -344,76 +389,6 @@ def create_layout(app):
 
 
 
-
-def get_reductions_options(algorithim_name):
-    def num_epochs_slider():
-        return NamedSlider(
-            name="Number of Iterations",
-            short="n_epochs",
-            min=100,
-            max=1000,
-            step=10,
-            val=500,
-            marks={
-                i: str(i) for i in [100, 250, 500, 750, 1000]
-            },
-        )
-
-    def num_nearest_neighbors():
-        return NamedSlider(
-            name="Number of NN",
-            short="n_neighbors",
-            min=4,
-            max=100,
-            step=None,
-            val=10,
-            marks={
-                i: str(i) for i in [4, 10, 20, 50, 100]
-            },
-        )
-
-    def learning_rate_slider():
-        return NamedSlider(
-            name="Learning Rate",
-            short="learning_rate",
-            min=10,
-            max=200,
-            step=1,
-            val=100,
-            marks={i: str(i) for i in [10, 50, 100, 200]},
-        )
-    
-    def perplexity_slider():
-        return NamedSlider(
-            name="Perplexity",
-            short="perplexity",
-            min=3,
-            max=100,
-            step=None,
-            val=30,
-            marks={i: str(i) for i in [3, 10, 20, 50, 100]},
-        )
-    
-    if algorithim_name == 'pca':
-        return []
-    elif algorithim_name == 'tsne':
-        return [
-            num_epochs_slider(), 
-            perplexity_slider(),
-            learning_rate_slider(),
-        ]
-    elif algorithim_name == 'umap':
-        return [
-            num_epochs_slider(),
-            num_nearest_neighbors(),
-            learning_rate_slider(),
-        ]
-
-
-
-
-
-
 def callbacks(app):
     # Callback function for the learn-more button
     @app.callback(
@@ -448,12 +423,22 @@ def callbacks(app):
 
 
     
-    @app.callback(
-        Output("reduction-parameters", "children"),
-        [Input("reduction-dropdown", "value")],
-    )
-    def update_dimred_options(value):
-        return get_reductions_options(value)
+    # @app.callback(
+    #     [Output("n_epochs_card", "style"),
+    #     Output("learning_rate_card", "style"),
+    #     Output("n_neighbors_card", "style"),
+    #     Output("perplexity_card", "style")],
+    #     [Input("reduction-dropdown", "value")],
+    # )
+    # def update_dimred_options(value):
+    #     if value == "pca":
+    #         return {"display": "none"},{"display": "inline"},{"display": "none"},{"display": "none"}
+    #     elif value == "tsne":
+    #         return {"display": "block"},{"display": "block"},{"display": "none"},{"display": "block"}
+    #     elif value == "umap":
+    #         return {"display": "block"},{"display": "block"},{"display": "block"},{"display": "none"}
+    #     else:
+    #         raise ValueError("reduction technique does not exist")
     
 
 
@@ -471,7 +456,7 @@ def callbacks(app):
         if technique == "pca":
             pca_kwargs(n_dims)
         elif technique == "tsne":
-            tsne_kwargs(n_)
+            tsne_kwargs(n_dims)
 
         kwargs = {}
         for child in children:
@@ -486,15 +471,15 @@ def callbacks(app):
             point_size=3
         )
     
-    @app.callback(
-        None,
-        None,
-        [State("n_epochs", "value"),
-        State("perplexity", "value"),
-        State("learning_rate", "value")]
-    )
-    def update_tsne(_, n_epochs, perplexity, learning_rate):
-        return n_epochs, perplexity, learning_rate
+    # @app.callback(
+    #     None,
+    #     None,
+    #     [State("n_epochs", "value"),
+    #     State("perplexity", "value"),
+    #     State("learning_rate", "value")]
+    # )
+    # def update_tsne(_, n_epochs, perplexity, learning_rate):
+    #     return n_epochs, perplexity, learning_rate
 
         
 
